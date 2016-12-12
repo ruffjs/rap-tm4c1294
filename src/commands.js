@@ -5,6 +5,8 @@ const { spawn } = require('child_process');
 
 const { Promise } = require('thenfail');
 
+const { flash } = require('./lm4flash');
+
 let commandMap = Object.create({});
 
 commandMap.system = function (program, trace) {
@@ -19,12 +21,12 @@ commandMap.system = function (program, trace) {
                 process.exit(1);
             }
 
-            let flash = spawn('lm4flash', [
-                binPath
-            ], {
-                stdio: 'inherit'
+            let cp = flash({
+                binary: binPath,
+                address: 0
             });
-            return Promise.for(flash);
+
+            return Promise.for(cp);
         });
 };
 
