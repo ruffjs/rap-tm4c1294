@@ -12,8 +12,9 @@ let commandMap = Object.create({});
 commandMap.system = function (program, trace) {
     program
         .command('upgrade <firmware-binary-file>')
+        .option('-E, --erase', 'erase entire flash')
         .description('upgrade ruff firmware')
-        .action(binPath => {
+        .action((binPath, options) => {
             trace.push('upgrade');
 
             if (!fs.existsSync(binPath)) {
@@ -23,7 +24,8 @@ commandMap.system = function (program, trace) {
 
             let cp = flash({
                 binary: binPath,
-                address: 0
+                address: 0,
+                erase: options.erase
             });
 
             return Promise.for(cp);
