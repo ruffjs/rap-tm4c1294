@@ -27,7 +27,8 @@ function createDeploymentPackage(sessionInfo, pathInfos, options) {
         try {
             let appPath = options.path;
             let toCompile = options.toCompile;
-            let appBuffer = generateApp(pathInfos, toCompile);
+            let origin = options.address || ORIGIN;
+            let appBuffer = generateApp(pathInfos, toCompile, origin);
             fs.writeFileSync(appPath, appBuffer);
             resolve();
         } catch (error) {
@@ -43,7 +44,8 @@ exports.deploy = deploy;
 function deploy(sessionInfo, pathInfos, options) {
     let appPath = tmp.tmpNameSync();
     let toCompile = options.toCompile;
-    let appBuffer = generateApp(pathInfos, toCompile);
+    let origin = options.address || ORIGIN;
+    let appBuffer = generateApp(pathInfos, toCompile, origin);
     fs.writeFileSync(appPath, appBuffer);
 
     let onprogress = options.onprogress || function () { };
@@ -51,13 +53,13 @@ function deploy(sessionInfo, pathInfos, options) {
 
     let cp = flash({
         binary: appPath,
-        address: ORIGIN
+        address: origin
     });
 
     return Promise.for(cp);
 }
 
-function generateApp(pathInfos, toCompile) {
+function generateApp(pathInfos, toCompile, origin) {
     let compilerCmd = findCommand(ruffCompiler);
     if (!compilerCmd) {
         toCompile = false;
@@ -142,7 +144,7 @@ function generateApp(pathInfos, toCompile) {
         }
     }
 
-    return deployment.mkapp(ORIGIN, modsManifest, rofsManifest);
+    return deployment.mkapp(origin, modsManifest, rofsManifest);
 }
 
 function runCompiler(compileCmd, srcName, srcContent) {
