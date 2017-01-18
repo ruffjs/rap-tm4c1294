@@ -13,6 +13,11 @@ const CP_FMT = 'arm-none-eabi-objcopy -j .text -j .rodata -O binary %s %s';
 exports.mkapp = mkapp;
 
 function mkapp(origin, modsManifest, rofsManifest) {
+    // fix name for windows platform
+    rofsManifest.forEach(item => {
+        item.name = item.name.replace(/\\/g, '/');
+    });
+
     if (origin !== align4(origin)) {
         throw new Error('app origin must be 4k aligned!');
     }
