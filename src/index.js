@@ -12,7 +12,7 @@ Object.assign(
 function preflight() {
     return Promise.then(() => {
         return {
-            ruffVersion: '1.2.0',
+            ruffVersion: null,
             authorization: null
         };
     });
