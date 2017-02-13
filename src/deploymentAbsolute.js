@@ -12,18 +12,20 @@ const CP_FMT = 'arm-none-eabi-objcopy -j .text -j .rodata -O binary %s %s';
 
 exports.mkapp = mkapp;
 
-function mkapp(origin/*unused*/, modsManifest, rofsManifest) {
+function mkapp(origin, modsManifest, rofsManifest) {
     // fix name for windows platform
     rofsManifest.forEach(item => {
         item.name = item.name.replace(/\\/g, '/');
     });
 
+    if (origin !== align4(origin)) {
+        throw new Error('app origin must be 4k aligned!');
+    }
+
     let buffer = makeHeader();
 
-    origin = 0;
     buffer = appendMods(origin, buffer, null);
     buffer = appendRofs(origin, buffer, rofsManifest);
-    buffer = appendIndex(origin, buffer);
 
     return buffer;
 }
@@ -292,13 +294,13 @@ function appendRofs(origin, buffer, rofsManifest) {
         buffer.writeUInt32LE(items.length, bucketAddr);
         bucketAddr += 4;
         // rofs_bucket_t.entries
-        buffer.writeUInt32LE(relOffsetMap.rofs_entry_t, bucketAddr);
+        buffer.writeUInt32LE(origin + relOffsetMap.rofs_entry_t, bucketAddr);
         bucketAddr += 4;
         // rofs_entry_t
         items.forEach(item => {
             // rofs_entry_t.key
             buffer.write(item.name, relOffsetMap.char, item.name.length);
-            buffer.writeUInt32LE(relOffsetMap.char, relOffsetMap.rofs_entry_t);
+            buffer.writeUInt32LE(origin + relOffsetMap.char, relOffsetMap.rofs_entry_t);
             relOffsetMap.char += item.name.length + 1;
             relOffsetMap.rofs_entry_t += 4;
             // rofs_entry_t.data
@@ -306,7 +308,7 @@ function appendRofs(origin, buffer, rofsManifest) {
             let beginDat = align8(relOffsetMap.char);
             const endDat = beginDat + dat.length;
             buffer.fill(dat, beginDat, endDat);
-            buffer.writeUInt32LE(beginDat, relOffsetMap.rofs_entry_t);
+            buffer.writeUInt32LE(origin + beginDat, relOffsetMap.rofs_entry_t);
             relOffsetMap.char = endDat + 1;
             relOffsetMap.rofs_entry_t += 4;
             // rofs_entry_t.size
@@ -316,31 +318,10 @@ function appendRofs(origin, buffer, rofsManifest) {
     });
 
     // update userapp_t
-    updateUserAppIndex(buffer, { rofs: relOffsetMap.rofs_t });
+    updateUserAppIndex(buffer, { rofs: origin + relOffsetMap.rofs_t });
 
     return buffer;
 }
-
-function appendIndex(origin, buffer) {
-    const pageSize = 4 * 1024;
-
-    // add padding to app
-    let paddingSize = Math.floor((buffer.length + pageSize - 1) / pageSize) * pageSize - buffer.length;
-    let paddingBuf = Buffer.alloc(paddingSize);
-    buffer = Buffer.concat([buffer, paddingBuf]);
-
-    // create index
-    let indexBuf = Buffer.alloc(pageSize);
-    let offset = 0;
-    // write magic
-    offset += indexBuf.write('INDX', offset);
-    // write app size
-    offset += indexBuf.writeUInt32LE(buffer.length, offset);
-
-    buffer = Buffer.concat([buffer, indexBuf]);
-    return buffer;
-}
-
 
 ///////////////
 // UTILITIES //
