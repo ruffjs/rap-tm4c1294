@@ -12,6 +12,8 @@ const CP_FMT = 'arm-none-eabi-objcopy -j .text -j .rodata -O binary %s %s';
 
 exports.mkapp = mkapp;
 
+const BAD_OFFSET = 0xffffffff;
+
 function mkapp(origin/*unused*/, modsManifest, rofsManifest) {
     // fix name for windows platform
     rofsManifest.forEach(item => {
@@ -33,13 +35,20 @@ function mkapp(origin/*unused*/, modsManifest, rofsManifest) {
 /////////////
 
 function makeHeader() {
-    let header = Buffer.alloc(4 + 4 + 4);
-    header.write('RUFF'); // magic
-    return header;
+    let buf = Buffer.alloc(4 + 4 + 4 + 4);
+    let offset = 0;
+
+    buf.write('RAPP', offset); // magic
+    offset += 4;
+
+    buf.writeUInt32LE(1, offset); // version
+    offset += 4;
+
+    return buf;
 }
 
 function updateUserAppIndex(buf, userapp) {
-    let offset = 4;
+    let offset = 4 + 4;
 
     if (typeof userapp.mods !== 'undefined' && userapp.mods >= 0) {
         buf.writeUInt32LE(userapp.mods, offset);
@@ -123,7 +132,7 @@ function linkObjects(textAddr, modsManifest) {
 
 function appendMods(origin, buffer, modsManifest) {
     if (!(modsManifest instanceof Array) || modsManifest.length === 0) {
-        updateUserAppIndex(buffer, { mods: 0 });
+        updateUserAppIndex(buffer, { mods: BAD_OFFSET });
         return buffer;
     }
 
@@ -223,7 +232,7 @@ function appendMods(origin, buffer, modsManifest) {
 
 function appendRofs(origin, buffer, rofsManifest) {
     if (!(rofsManifest instanceof Array) || rofsManifest.length === 0) {
-        updateUserAppIndex(buffer, { rofs: 0 });
+        updateUserAppIndex(buffer, { rofs: BAD_OFFSET });
         return buffer;
     }
 
@@ -257,6 +266,7 @@ function appendRofs(origin, buffer, rofsManifest) {
     const relOffsetMap = {};
 
     let relOffset = relOrigin;
+
     // rofs_t
     relOffsetMap.rofs_t = relOffset;
     relOffset += sizeof.rofs_t;
@@ -281,8 +291,9 @@ function appendRofs(origin, buffer, rofsManifest) {
 
     // write to buffer
     buffer = Buffer.concat([buffer, Buffer.alloc(relOffsetMap.__eof__ - relOrigin, 0)]);
-    // rofs_t.hash_func
-    buffer.writeUInt16LE(1 /* value here does not matter */, relOffsetMap.rofs_t);
+    // rofs_t.version
+    let version = 0x8000;
+    buffer.writeUInt16LE(version, relOffsetMap.rofs_t);
     // rofs_t.bucket_count
     buffer.writeUInt16LE(bucketCount, relOffsetMap.rofs_t + 2);
     // rofs_bucket_t
@@ -291,22 +302,22 @@ function appendRofs(origin, buffer, rofsManifest) {
         // rofs_bucket_t.entry_count
         buffer.writeUInt32LE(items.length, bucketAddr);
         bucketAddr += 4;
-        // rofs_bucket_t.entries
-        buffer.writeUInt32LE(relOffsetMap.rofs_entry_t, bucketAddr);
+        // rofs_bucket_t.entries (pointer offset)
+        buffer.writeUInt32LE(relOffsetMap.rofs_entry_t - relOrigin, bucketAddr);
         bucketAddr += 4;
         // rofs_entry_t
         items.forEach(item => {
-            // rofs_entry_t.key
+            // rofs_entry_t.key (pointer offset)
             buffer.write(item.name, relOffsetMap.char, item.name.length);
-            buffer.writeUInt32LE(relOffsetMap.char, relOffsetMap.rofs_entry_t);
+            buffer.writeUInt32LE(relOffsetMap.char - relOrigin, relOffsetMap.rofs_entry_t);
             relOffsetMap.char += item.name.length + 1;
             relOffsetMap.rofs_entry_t += 4;
-            // rofs_entry_t.data
+            // rofs_entry_t.data (pointer offset)
             const dat = getFileData(item);
             let beginDat = align8(relOffsetMap.char);
             const endDat = beginDat + dat.length;
             buffer.fill(dat, beginDat, endDat);
-            buffer.writeUInt32LE(beginDat, relOffsetMap.rofs_entry_t);
+            buffer.writeUInt32LE(beginDat - relOrigin, relOffsetMap.rofs_entry_t);
             relOffsetMap.char = endDat + 1;
             relOffsetMap.rofs_entry_t += 4;
             // rofs_entry_t.size

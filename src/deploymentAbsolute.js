@@ -19,7 +19,7 @@ function mkapp(origin, modsManifest, rofsManifest) {
     });
 
     if (origin !== align4(origin)) {
-        throw new Error('app origin must be 4k aligned!');
+        throw new Error(`app address must be 4k aligned: ${origin} => ${align4(origin)}`);
     }
 
     let buffer = makeHeader();
@@ -283,8 +283,9 @@ function appendRofs(origin, buffer, rofsManifest) {
 
     // write to buffer
     buffer = Buffer.concat([buffer, Buffer.alloc(relOffsetMap.__eof__ - relOrigin, 0)]);
-    // rofs_t.hash_func
-    buffer.writeUInt16LE(1 /* value here does not matter */, relOffsetMap.rofs_t);
+    // rofs_t.version
+    let version = 0;
+    buffer.writeUInt16LE(version, relOffsetMap.rofs_t);
     // rofs_t.bucket_count
     buffer.writeUInt16LE(bucketCount, relOffsetMap.rofs_t + 2);
     // rofs_bucket_t
