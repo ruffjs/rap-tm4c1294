@@ -333,15 +333,16 @@ function appendRofs(origin, buffer, rofsManifest) {
 }
 
 function appendIndex(origin, buffer) {
+    const indxSize = 128;
     const pageSize = 4 * 1024;
 
     // add padding to app
-    let paddingSize = Math.floor((buffer.length + pageSize - 1) / pageSize) * pageSize - buffer.length;
+    let paddingSize = Math.ceil((buffer.length + indxSize) / pageSize) * pageSize - buffer.length - indxSize;
     let paddingBuf = Buffer.alloc(paddingSize);
     buffer = Buffer.concat([buffer, paddingBuf]);
 
     // create index
-    let indexBuf = Buffer.alloc(pageSize);
+    let indexBuf = Buffer.alloc(indxSize);
     let offset = 0;
     // write magic
     offset += indexBuf.write('INDX', offset);
