@@ -21,7 +21,7 @@ exports.deploy = function (rap, program, trace) {
         //.option('--force', 'force deployment even if a claim claims incompatable engine or board')
         .option('--package [path]', 'create the deployment package for lm4flash')
         .option('--package-compact [path]', 'create the compact deployment package for OTA')
-        .option('--address <address>', 'create the deployment package with a specific flash address')
+        .option('--address <address>', 'create the deployment package with absolute addressing')
         .option('--layout <path>', 'use custom layout file');
 
     trace.push(action);
@@ -29,7 +29,10 @@ exports.deploy = function (rap, program, trace) {
 
 function action(rap, program) {
     let toCompile = !program.source;
-    let origin = Number.parseInt(program.address, 10) || ORIGIN;
+
+    // disable absolute addressing by default
+    program.address = program.address || '-1';
+    let origin = Number.parseInt(program.address) || ORIGIN;
 
     // figure out APP path
     let appPath = program.package || program.packageCompact || null;
