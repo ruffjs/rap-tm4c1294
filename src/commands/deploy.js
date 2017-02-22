@@ -19,7 +19,8 @@ exports.deploy = function (rap, program, trace) {
         .usage('[options...]')
         .option('--source', 'deploy source code directly without pre-compilation')
         //.option('--force', 'force deployment even if a claim claims incompatable engine or board')
-        .option('--package [path]', 'create the deployment package at given path without an actual deployment')
+        .option('--package [path]', 'create the deployment package for lm4flash')
+        .option('--package-compact [path]', 'create the compact deployment package for OTA')
         .option('--address <address>', 'create the deployment package with a specific flash address')
         .option('--layout <path>', 'use custom layout file');
 
@@ -30,21 +31,24 @@ function action(rap, program) {
     let toCompile = !program.source;
     let origin = Number.parseInt(program.address, 10) || ORIGIN;
 
+    // figure out APP path
+    let appPath = program.package || program.packageCompact || null;
+    if (typeof appPath === 'boolean') {
+        appPath = require(path.join(process.cwd(), 'package.json')).name;
+    }
+    if (appPath && !/\.bin$/i.test(appPath)) {
+        appPath += '.bin';
+    }
+
     rap
         .getDeploymentManifest()
         .then(manifest => {
-            if (program.package) {
-                // package
-                let appPath = program.package;
-                if (typeof appPath !== 'string') {
-                    appPath = require(path.join(process.cwd(), 'package.json')).name;
-                }
-                if (!/\.bin$/i.test(appPath)) {
-                    appPath += '.bin';
-                }
+            if (appPath) {
+                // create package only
+                let isCompact = !!program.packageCompact;
                 return new Promise((resolve, reject) => {
                     try {
-                        let appBuffer = generateApp(manifest, toCompile, origin);
+                        let appBuffer = generateApp(manifest, toCompile, origin, isCompact);
                         fs.writeFileSync(appPath, appBuffer);
                         resolve();
                     } catch (error) {
@@ -54,9 +58,9 @@ function action(rap, program) {
                     console.log(`Package created at "${appPath}"`);
                 });
             } else {
-                // deploy
+                // create package and deploy it
                 let appPath = tmp.tmpNameSync();
-                let appBuffer = generateApp(manifest, toCompile, origin);
+                let appBuffer = generateApp(manifest, toCompile, origin, false);
                 fs.writeFileSync(appPath, appBuffer);
 
                 if (origin < 0) {
@@ -73,7 +77,7 @@ function action(rap, program) {
         });
 }
 
-function generateApp(manifest, toCompile, origin) {
+function generateApp(manifest, toCompile, origin, isCompact) {
     const deployment = (origin < 0) ? require('../lib/deployment') : require('../lib/deploymentAbsolute');
 
     let compilerCmd = findCommand(ruffCompiler);
@@ -160,7 +164,7 @@ function generateApp(manifest, toCompile, origin) {
         }
     }
 
-    return deployment.mkapp(origin, modsManifest, rofsManifest);
+    return deployment.mkapp(origin, modsManifest, rofsManifest, isCompact);
 }
 
 function runCompiler(compileCmd, srcName, srcContent) {
