@@ -11,7 +11,7 @@ exports.system = function (rap, program, trace) {
             const fs = require('fs');
             const { spawn } = require('child_process');
             const { Promise } = require('thenfail');
-            const { flash } = require('../lm4flash');
+            const { flash } = require('../lib/lm4flash');
 
             if (!fs.existsSync(binPath)) {
                 console.error('The binary file specified does not exist.');

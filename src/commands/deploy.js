@@ -8,7 +8,7 @@ const chalk = require('chalk');
 const tmp = require('tmp');
 const { Promise } = require('thenfail');
 
-const { flash } = require('../lm4flash');
+const { flash } = require('../lib/lm4flash');
 
 const ORIGIN = 500 * 1024;
 
@@ -74,7 +74,7 @@ function action(rap, program) {
 }
 
 function generateApp(manifest, toCompile, origin) {
-    const deployment = (origin < 0) ? require('../deployment') : require('../deploymentAbsolute');
+    const deployment = (origin < 0) ? require('../lib/deployment') : require('../lib/deploymentAbsolute');
 
     let compilerCmd = findCommand(ruffCompiler);
     if (!compilerCmd) {
