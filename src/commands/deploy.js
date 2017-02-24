@@ -20,7 +20,7 @@ exports.deploy = function (rap, program, trace) {
         .option('--source', 'deploy source code directly without pre-compilation')
         //.option('--force', 'force deployment even if a claim claims incompatable engine or board')
         .option('--package [path]', 'create the deployment package for lm4flash')
-        .option('--package-compact [path]', 'create the compact deployment package for OTA')
+        .option('--align <bytes>', 'specify alignment for packaging')
         .option('--address <address>', 'create the deployment package with absolute addressing')
         .option('--layout <path>', 'use custom layout file');
 
@@ -30,12 +30,16 @@ exports.deploy = function (rap, program, trace) {
 function action(rap, program) {
     let toCompile = !program.source;
 
+    // lm4flash requires 4K, but OTA doesn't
+    let alignment = Number.parseInt(program.align) || 4 * 1024;
+    alignment = Math.floor(alignment / 8) * 8;
+
     // disable absolute addressing by default
     program.address = program.address || '-1';
     let origin = Number.parseInt(program.address) || ORIGIN;
 
     // figure out APP path
-    let appPath = program.package || program.packageCompact || null;
+    let appPath = program.package || null;
     if (typeof appPath === 'boolean') {
         appPath = require(path.join(process.cwd(), 'package.json')).name;
     }
@@ -48,10 +52,9 @@ function action(rap, program) {
         .then(manifest => {
             if (appPath) {
                 // create package only
-                let isCompact = !!program.packageCompact;
                 return new Promise((resolve, reject) => {
                     try {
-                        let appBuffer = generateApp(manifest, toCompile, origin, isCompact);
+                        let appBuffer = generateApp(manifest, toCompile, origin, alignment);
                         fs.writeFileSync(appPath, appBuffer);
                         resolve();
                     } catch (error) {
@@ -80,7 +83,7 @@ function action(rap, program) {
         });
 }
 
-function generateApp(manifest, toCompile, origin, isCompact) {
+function generateApp(manifest, toCompile, origin, alignment) {
     const deployment = (origin < 0) ? require('../lib/deployment') : require('../lib/deploymentAbsolute');
 
     let compilerCmd = findCommand(ruffCompiler);
@@ -167,7 +170,7 @@ function generateApp(manifest, toCompile, origin, isCompact) {
         }
     }
 
-    return deployment.mkapp(origin, modsManifest, rofsManifest, isCompact);
+    return deployment.mkapp(origin, modsManifest, rofsManifest, alignment);
 }
 
 function runCompiler(compileCmd, srcName, srcContent) {

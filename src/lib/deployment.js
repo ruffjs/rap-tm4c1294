@@ -14,7 +14,7 @@ exports.mkapp = mkapp;
 
 const BAD_OFFSET = 0xffffffff;
 
-function mkapp(origin/*unused*/, modsManifest, rofsManifest, isCompact) {
+function mkapp(origin/*unused*/, modsManifest, rofsManifest, alignmnent) {
     // fix name for windows platform
     rofsManifest.forEach(item => {
         item.name = item.name.replace(/\\/g, '/');
@@ -25,7 +25,7 @@ function mkapp(origin/*unused*/, modsManifest, rofsManifest, isCompact) {
     origin = 0;
     buffer = appendMods(origin, buffer, null);
     buffer = appendRofs(origin, buffer, rofsManifest);
-    buffer = appendIndex(origin, buffer, isCompact);
+    buffer = appendIndex(origin, buffer, alignmnent);
 
     return buffer;
 }
@@ -332,9 +332,9 @@ function appendRofs(origin, buffer, rofsManifest) {
     return buffer;
 }
 
-function appendIndex(origin, buffer, isCompact) {
+function appendIndex(origin, buffer, alignmnent) {
     const indxSize = 128;
-    const pageSize = isCompact ? 8 : 4 * 1024;
+    const pageSize = alignmnent;
 
     // add padding to app
     let paddingSize = Math.ceil((buffer.length + indxSize) / pageSize) * pageSize - buffer.length - indxSize;
