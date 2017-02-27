@@ -66,7 +66,7 @@ function action(rap, program) {
             } else {
                 // create package and deploy it
                 let appPath = tmp.tmpNameSync();
-                let appBuffer = generateApp(manifest, toCompile, origin, false);
+                let appBuffer = generateApp(manifest, toCompile, origin, alignment);
                 fs.writeFileSync(appPath, appBuffer);
 
                 if (origin < 0) {
