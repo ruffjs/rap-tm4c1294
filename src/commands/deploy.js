@@ -105,7 +105,7 @@ function generateApp(manifest, toCompile, origin, alignment) {
     let modMap = Object.create(null);
 
     for (let pathInfo of manifest) {
-        let { name, source, content } = pathInfo;
+        let { name, source, sourceText, content } = pathInfo;
 
         let extName = path.extname(name);
         switch (extName) {
@@ -140,26 +140,24 @@ function generateApp(manifest, toCompile, origin, alignment) {
             }
 
             case '.js': {
+                let name = pathInfo.name;
+                let content = pathInfo.content || pathInfo.sourceText || fs.readFileSync(pathInfo.source);
                 if (toCompile) {
-                    let orig = pathInfo.content ? pathInfo.content : fs.readFileSync(pathInfo.source);
-                    let content = `(function(){return function(exports,require,module,__filename,__dirname){${orig}\n}})();`;
-                    let compiled = runCompiler(compilerCmd, name, content);
-                    delete pathInfo.source;
-                    pathInfo.content = compiled;
+                    let patched = `(function(){return function(exports,require,module,__filename,__dirname){${content}\n}})();`;
+                    content = runCompiler(compilerCmd, name, patched);
                 }
-                rofsManifest.push(pathInfo);
+                rofsManifest.push({ name, content });
                 break;
             }
 
             case '.json': {
+                let name = pathInfo.name;
+                let content = pathInfo.content || pathInfo.sourceText || fs.readFileSync(pathInfo.source);
                 if (toCompile) {
-                    let orig = pathInfo.content ? pathInfo.content : fs.readFileSync(pathInfo.source);
-                    let content = `(function(){return ${orig.toString().trim()};})();`;
-                    let compiled = runCompiler(compilerCmd, name, content);
-                    delete pathInfo.source;
-                    pathInfo.content = compiled;
+                    let patched = `(function(){return ${content.toString().trim()};})();`;
+                    content = runCompiler(compilerCmd, name, patched);
                 }
-                rofsManifest.push(pathInfo);
+                rofsManifest.push({ name, content });
                 break;
             }
 
