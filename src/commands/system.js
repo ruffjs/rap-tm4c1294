@@ -9,7 +9,6 @@ exports.system = function (rap, program, trace) {
             trace.push('upgrade');
 
             const fs = require('fs');
-            const { spawn } = require('child_process');
             const { Promise } = require('thenfail');
             const { flash } = require('../lib/lm4flash');
 
