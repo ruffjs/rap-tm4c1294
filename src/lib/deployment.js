@@ -14,7 +14,7 @@ exports.mkapp = mkapp;
 
 const BAD_OFFSET = 0xffffffff;
 
-function mkapp(origin/*unused*/, modsManifest, rofsManifest, alignment) {
+function mkapp(origin/*unused*/, modsManifest, rofsManifest, alignment, ota) {
     // fix name for windows platform
     rofsManifest.forEach(item => {
         item.name = item.name.replace(/\\/g, '/');
@@ -25,7 +25,7 @@ function mkapp(origin/*unused*/, modsManifest, rofsManifest, alignment) {
     origin = 0;
     buffer = appendMods(origin, buffer, null);
     buffer = appendRofs(origin, buffer, rofsManifest);
-    buffer = appendIndex(origin, buffer, alignment);
+    buffer = appendIndex(origin, buffer, alignment, ota);
 
     return buffer;
 }
@@ -332,7 +332,7 @@ function appendRofs(origin, buffer, rofsManifest) {
     return buffer;
 }
 
-function appendIndex(origin, buffer, alignment) {
+function appendIndex(origin, buffer, alignment, ota) {
     const indxSize = 128;
     const pageSize = alignment;
 
@@ -345,7 +345,10 @@ function appendIndex(origin, buffer, alignment) {
     let indexBuf = Buffer.alloc(indxSize);
     let offset = 0;
     // write magic
-    offset += indexBuf.write('INDX', offset);
+    console.log('===', ota !== true);
+    if (ota !== true) {
+        offset += indexBuf.write('INDX', offset);
+    }
     // write app size
     offset += indexBuf.writeUInt32LE(buffer.length, offset);
 

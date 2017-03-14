@@ -20,6 +20,7 @@ exports.deploy = function (rap, program, trace) {
         .option('--source', 'deploy source code directly without pre-compilation')
         //.option('--force', 'force deployment even if a claim claims incompatable engine or board')
         .option('--package [path]', 'create the deployment package for lm4flash')
+        .option('--ota', 'specify OTA usage for packaging')
         .option('--align <bytes>', 'specify alignment for packaging')
         .option('--address <address>', 'create the deployment package with absolute addressing')
         .option('--layout <path>', 'use custom layout file');
@@ -29,6 +30,7 @@ exports.deploy = function (rap, program, trace) {
 
 function action(rap, program) {
     let toCompile = !program.source;
+    let ota = program.ota;
 
     // lm4flash requires 4K, but OTA doesn't
     let alignment = Number.parseInt(program.align) || 4 * 1024;
@@ -54,7 +56,7 @@ function action(rap, program) {
                 // create package only
                 return new Promise((resolve, reject) => {
                     try {
-                        let appBuffer = generateApp(manifest, toCompile, origin, alignment);
+                        let appBuffer = generateApp(manifest, toCompile, origin, alignment, ota);
                         fs.writeFileSync(appPath, appBuffer);
                         resolve();
                     } catch (error) {
@@ -83,7 +85,7 @@ function action(rap, program) {
         });
 }
 
-function generateApp(manifest, toCompile, origin, alignment) {
+function generateApp(manifest, toCompile, origin, alignment, ota) {
     const deployment = (origin < 0) ? require('../lib/deployment') : require('../lib/deploymentAbsolute');
 
     let compilerCmd = findCommand(ruffCompiler);
@@ -168,7 +170,7 @@ function generateApp(manifest, toCompile, origin, alignment) {
         }
     }
 
-    return deployment.mkapp(origin, modsManifest, rofsManifest, alignment);
+    return deployment.mkapp(origin, modsManifest, rofsManifest, alignment, ota);
 }
 
 function runCompiler(compileCmd, srcName, srcContent) {
