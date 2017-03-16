@@ -345,7 +345,6 @@ function appendIndex(origin, buffer, alignment, ota) {
     let indexBuf = Buffer.alloc(indxSize);
     let offset = 0;
     // write magic
-    console.log('===', ota !== true);
     if (ota !== true) {
         offset += indexBuf.write('INDX', offset);
     }
