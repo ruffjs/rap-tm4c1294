@@ -10,6 +10,8 @@ const { Promise } = require('thenfail');
 
 const { flash } = require('../lib/lm4flash');
 
+const parametersJS = require('./parameters.js');
+
 const ORIGIN = 500 * 1024;
 
 const ruffCompiler = 'ruff-compiler';
@@ -23,7 +25,8 @@ exports.deploy = function (rap, program, trace) {
         .option('--ota', 'specify OTA usage for packaging')
         .option('--align <bytes>', 'specify alignment for packaging')
         .option('--address <address>', 'create the deployment package with absolute addressing')
-        .option('--layout <path>', 'use custom layout file');
+        .option('--layout <path>', 'use custom layout file')
+        .option('--parameters [serial=<serial>]', 'designate device serial');
 
     trace.push(action);
 };
@@ -66,6 +69,14 @@ function action(rap, program) {
                     console.log(`Package created at "${appPath}"`);
                 });
             } else {
+                // get program.serail
+                var parameters = parametersJS.getParameters(rap, program);
+                if (parameters === undefined) {
+                    program.serial = undefined;
+                } else {
+                    program.serial = parameters.serial;
+                }
+
                 // create package and deploy it
                 let appPath = tmp.tmpNameSync();
                 let appBuffer = generateApp(manifest, toCompile, origin, alignment);
@@ -77,6 +88,7 @@ function action(rap, program) {
 
                 let cp = flash({
                     binary: appPath,
+                    serial: program.serial,
                     address: origin
                 });
 

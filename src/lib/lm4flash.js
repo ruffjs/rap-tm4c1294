@@ -10,6 +10,7 @@ exports.flash = flash;
  *
  * {
  *     binary : 'abc.bin',
+ *     serial : '0F0036A7',
  *     address : 0x500,
  *     erase : true
  * }
@@ -27,6 +28,9 @@ function flash(options) {
                 if (!options.erase) {
                     arglst.push('-S', `0x${options.address.toString(16)}`);
                 }
+                if (options.serial !== undefined) {
+                    arglst.push('-s', options.serial);
+                }
                 arglst = arglst.concat([
                     options.binary
                 ]);
@@ -40,6 +44,9 @@ function flash(options) {
                 let arglst = [];
                 if (options.erase) {
                     arglst.push('-e', 'all');
+                }
+                if (options.serial !== undefined) {
+                    arglst.push('-s', options.serial);
                 }
                 arglst = arglst.concat([
                     '-r',
