@@ -14,12 +14,13 @@ const parametersJS = require('./parameters.js');
 
 const ORIGIN = 500 * 1024;
 
-const ruffCompiler = 'ruff-compiler';
+let ruffCompiler = 'ruff-compiler';
 
 exports.deploy = function (rap, program, trace) {
     program
         .usage('[options...]')
         .option('--source', 'deploy source code directly without pre-compilation')
+        .option('--use-32-bit', 'use 32 bit compiler')
         //.option('--force', 'force deployment even if a claim claims incompatable engine or board')
         .option('--package [path]', 'create the deployment package for lm4flash')
         .option('--ota', 'specify OTA usage for packaging')
@@ -34,6 +35,10 @@ exports.deploy = function (rap, program, trace) {
 function action(rap, program) {
     let toCompile = !program.source;
     let ota = program.ota;
+
+    if (program.use32Bit) {
+        ruffCompiler = `${ruffCompiler}-32`;
+    }
 
     // lm4flash requires 4K, but OTA doesn't
     let alignment = Number.parseInt(program.align) || 4 * 1024;
