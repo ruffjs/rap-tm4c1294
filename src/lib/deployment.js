@@ -267,6 +267,12 @@ function appendRofs(origin, buffer, rofsManifest) {
 
     let relOffset = relOrigin;
 
+    // NOTE:
+    // JerryScript's bytecode must be 8 bytes aligned,
+    // see docs/04.INTERNALS.md section "Compressed Pointers".
+    // Since we put all data in "chars" region including bytecode,
+    // therefore we need to align start address for each data with 8 bytes.
+
     // rofs_t
     relOffsetMap.rofs_t = relOffset;
     relOffset += sizeof.rofs_t;
