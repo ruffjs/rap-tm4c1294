@@ -20,6 +20,7 @@ exports.deploy = function (rap, program, trace) {
     program
         .usage('[options...]')
         .option('--source', 'deploy source code directly without pre-compilation')
+        .option('--file <path>', 'deploy the specified app file')
         .option('--use-32-bit', 'use 32 bit compiler')
         //.option('--force', 'force deployment even if a claim claims incompatable engine or board')
         .option('--package [path]', 'create the deployment package for lm4flash')
@@ -55,6 +56,40 @@ function action(rap, program) {
     }
     if (appPath && !/\.bin$/i.test(appPath)) {
         appPath += '.bin';
+    }
+
+    if (program.file) {
+        return new Promise((resolve, reject) => {
+            try {
+                let fileBuffer = fs.readFileSync(program.file);
+                resolve(fileBuffer);
+            } catch (error) {
+                reject(error);
+            }
+        })
+        .then(fileBuffer => {
+            // get program.serail
+            let parameters = parametersJS.getParameters(rap, program);
+            if (parameters === undefined) {
+                program.serial = undefined;
+            } else {
+                program.serial = parameters.serial;
+            }
+            // create package and deploy it
+            let appPath = tmp.tmpNameSync();
+            let appBuffer = alignAppForFlash(fileBuffer);
+            fs.writeFileSync(appPath, appBuffer);
+            if (origin < 0) {
+                origin = 1024 * 1024 - appBuffer.length;
+            }
+            let cp = flash({
+                binary: appPath,
+                serial: program.serial,
+                address: origin
+            });
+
+            return Promise.for(cp);
+        });
     }
 
     rap
