@@ -85,6 +85,7 @@ function action(rap, program) {
                 // create package and deploy it
                 let appPath = tmp.tmpNameSync();
                 let appBuffer = generateApp(manifest, toCompile, origin, alignment);
+                appBuffer = alignAppForFlash(appBuffer);
                 fs.writeFileSync(appPath, appBuffer);
 
                 if (origin < 0) {
@@ -215,4 +216,16 @@ function findCommand(cmd) {
     } catch (e) {
         return '';
     }
+}
+
+function alignAppForFlash(appBuffer) {
+    let flashAlignment = 4 * 1024;
+    if (appBuffer.length % flashAlignment === 0) {
+        return appBuffer;
+    }
+    let size = Math.ceil(appBuffer.length / flashAlignment) * flashAlignment;
+    return Buffer.concat([
+        Buffer.alloc(size - appBuffer.length, 0),
+        appBuffer
+    ]);
 }
