@@ -1,6 +1,6 @@
 {
     "name": "rap-tm4c1294",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "description": "Rap extension for tm4c1294",
     "main": "src/index.js",
     "author": "Nanchao",
