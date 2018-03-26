@@ -238,7 +238,7 @@ function runCompiler(compileCmd, srcName, srcContent) {
 
     if (result.status !== 0) {
         let msg = result.stdout.toString();
-        throw new Error(msg);
+        throw new Error(msg + srcName);
     }
 
     return result.stdout;
